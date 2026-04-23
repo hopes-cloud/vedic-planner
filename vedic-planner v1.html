@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Vedic Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Mono:wght@300;400;500&family=Spectral:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f5f0;--surface:#fff;--border:#e4ddd3;--border-light:#ede8e0;
+  --text-primary:#1a1714;--text-secondary:#6b6560;--text-muted:#a09a92;
+  --accent:#c4622d;--accent-soft:#f2e8df;--gold:#b8933a;--gold-soft:#fdf5e0;
+  /* moon phases */
+  --shukla:#f5d800;--shukla-text:#5a4600;
+  --krishna:#cecbc4;--krishna-text:#3a3835;
+  --amavasya:#2a2724;--amavasya-text:#e0dbd4;
+  --purnima:#e8b800;--purnima-text:#3a2a00;
+  /* banners */
+  --rahu-bg:#fde8e8;--rahu-text:#b02a2a;
+  --muhurta-bg:#e6f4e6;--muhurta-text:#266226;
+  --sunset-bg:#fdf0d8;--sunset-text:#8a5a1a;
+  /* planets */
+  --su:#c4622d;--mo:#7a6a8a;--ma:#c0392b;
+  --me:#2e6b96;--ju:#c4862d;--ve:#2d8a6a;--sa:#5a5a7a;
+  --ra:#4a2a6a;--ke:#6a4a2a;
+}
+body{font-family:'EB Garamond',Georgia,serif;background:var(--bg);color:var(--text-primary);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+
+/* NAV */
+nav{display:flex;align-items:center;gap:10px;padding:0 16px;height:52px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:100}
+.logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:500;flex-shrink:0}
+.logo-icon{width:28px;height:28px;border-radius:6px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
+.location-bar{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text-secondary);cursor:pointer;transition:border-color .15s;min-width:160px}
+.location-bar:hover{border-color:var(--accent)}
+.nav-spacer{flex:1}
+.cache-pill{font-family:'DM Mono',monospace;font-size:9px;padding:3px 8px;border-radius:20px;border:1px solid var(--border-light);color:var(--text-muted);letter-spacing:.04em;cursor:default;transition:all .2s}
+.cache-pill.fresh{color:#2d8a6a;border-color:#b8dfd0;background:#f0faf5}
+.cache-pill.stale{color:var(--accent);border-color:#f0c8b0;background:#fff8f5}
+.btn-donate{padding:6px 14px;border-radius:7px;border:none;background:var(--accent);color:#fff;font-family:'EB Garamond',serif;font-size:14px;cursor:pointer;opacity:1;transition:opacity .15s}
+.btn-donate:hover{opacity:.85}
+.btn-create{display:flex;align-items:center;gap:5px;background:#4361c2;color:#fff;border:none;border-radius:7px;padding:6px 13px;font-family:'EB Garamond',serif;font-size:14px;cursor:pointer;transition:opacity .15s}
+.btn-create:hover{opacity:.88}
+.view-tabs{display:flex;gap:2px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:3px}
+.view-tab{padding:4px 12px;font-family:'DM Mono',monospace;font-size:11px;border-radius:5px;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;transition:all .15s}
+.view-tab.active{background:var(--surface);color:var(--text-primary);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.nav-icon{width:30px;height:30px;border-radius:6px;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-secondary);transition:all .15s;flex-shrink:0}
+.nav-icon:hover{border-color:var(--accent);color:var(--accent)}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--accent-soft);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--accent);font-family:'DM Mono',monospace;cursor:pointer;flex-shrink:0}
+
+/* LAYOUT */
+.main{display:grid;grid-template-columns:660px 1fr 320px;flex:1;overflow:hidden}
+.panel{overflow-y:auto;border-right:1px solid var(--border)}
+.panel:last-child{border-right:none}
+.panel::-webkit-scrollbar{width:4px}
+.panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* CALENDAR */
+.cal-header{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border-light);flex-wrap:wrap;gap:8px}
+.cal-nav-btn{width:26px;height:26px;border-radius:5px;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);transition:all .15s;flex-shrink:0}
+.cal-nav-btn:hover{border-color:var(--accent);color:var(--accent)}
+.cal-month-title{font-size:18px;font-weight:500;letter-spacing:-.01em;flex:1;font-style:italic}
+.cal-legend{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:3px}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-day-hdr{padding:7px 0 5px;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--text-muted);border-bottom:1px solid var(--border-light);text-transform:uppercase}
+.cal-cell{padding:6px 8px;min-height:82px;border-right:1px solid var(--border-light);border-bottom:1px solid var(--border-light);cursor:pointer;transition:filter .12s;position:relative;display:flex;flex-direction:column;gap:2px}
+.cal-cell:nth-child(7n){border-right:none}
+.cal-cell:hover{filter:brightness(.93)}
+.cal-cell.other-month{opacity:.28;pointer-events:none}
+.cal-cell.shukla{background:var(--shukla)}
+.cal-cell.purnima{background:var(--purnima)}
+.cal-cell.krishna{background:var(--krishna)}
+.cal-cell.amavasya{background:var(--amavasya)}
+.cal-cell.selected{outline:2px solid var(--accent);outline-offset:-2px;z-index:1}
+.cal-date{font-family:'DM Mono',monospace;font-size:12px;display:flex;align-items:center}
+.cal-date-inner{width:23px;height:23px;display:flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0}
+.cal-cell.today .cal-date-inner{background:var(--accent);color:#fff}
+.cal-cell.amavasya .cal-date{color:var(--amavasya-text)}
+.cal-cell.purnima .cal-date{color:var(--purnima-text)}
+.cal-cell.shukla .cal-date{color:var(--shukla-text)}
+.cal-cell.krishna .cal-date{color:var(--krishna-text)}
+.sankranti-sun{font-size:19px;line-height:1;position:absolute;bottom:5px;right:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
+.nk-tag{font-family:'Spectral',serif;font-size:8.5px;font-style:italic;opacity:.6;line-height:1.3}
+.cal-cell.shukla .nk-tag{color:var(--shukla-text)}
+.cal-cell.krishna .nk-tag{color:var(--krishna-text)}
+.cal-cell.amavasya .nk-tag{color:var(--amavasya-text)}
+.cal-cell.purnima .nk-tag{color:var(--purnima-text)}
+.ev-pill{font-family:'DM Mono',monospace;font-size:8px;background:rgba(0,0,0,.12);border-radius:3px;padding:1px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.cal-cell.amavasya .ev-pill{background:rgba(255,255,255,.18);color:var(--amavasya-text)}
+.cal-cell.shukla .ev-pill{background:rgba(0,0,0,.1);color:var(--shukla-text)}
+
+/* TIMELINE */
+.timeline-panel{background:var(--surface)}
+.tl-header{padding:12px 16px 8px;border-bottom:1px solid var(--border-light);position:sticky;top:0;background:var(--surface);z-index:10}
+.tl-date-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.tl-date{font-size:18px;font-weight:500;font-style:italic;letter-spacing:-.01em;flex:1}
+.tl-nav{width:24px;height:24px;border-radius:5px;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);transition:all .15s;flex-shrink:0}
+.tl-nav:hover{border-color:var(--accent);color:var(--accent)}
+.tl-cols{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
+.hora-block{border-bottom:1px solid var(--border-light)}
+.hora-phdr{display:flex;align-items:center;justify-content:space-between;padding:5px 16px 4px;background:var(--bg);border-bottom:1px solid var(--border-light)}
+.hora-pname{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase}
+.hora-prange{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted)}
+.hora-slot{display:flex;align-items:center;padding:5px 16px;border-bottom:1px solid var(--border-light);cursor:pointer;transition:background .1s;gap:10px;min-height:29px}
+.hora-slot:last-child{border-bottom:none}
+.hora-slot:hover{background:var(--accent-soft)}
+.hs-time{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);width:38px;flex-shrink:0}
+.hs-label{font-size:12px;color:var(--text-muted);font-style:italic;flex:1}
+.hs-ghati{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);background:var(--bg);padding:1px 5px;border-radius:3px}
+.hora-slot.now-line{background:#fff8f5;border-left:2px solid var(--accent)}
+.hora-slot.now-line .hs-time{color:var(--accent)}
+.hora-slot.has-event{background:#eff3ff}
+.hora-slot.has-event .hs-label{color:#2e4a9a;font-style:normal}
+.banner{margin:0 16px;padding:5px 10px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:space-between;letter-spacing:.04em}
+.banner.muhurta{background:var(--muhurta-bg);color:var(--muhurta-text)}
+.banner.rahu{background:var(--rahu-bg);color:var(--rahu-text)}
+.banner.sun-ev{background:var(--sunset-bg);color:var(--sunset-text);margin:5px 16px}
+
+/* planet text colors */
+.pc-su{color:var(--su)}.pc-mo{color:var(--mo)}.pc-ma{color:var(--ma)}
+.pc-me{color:var(--me)}.pc-ju{color:var(--ju)}.pc-ve{color:var(--ve)}
+.pc-sa{color:var(--sa)}.pc-ra{color:var(--ra)}.pc-ke{color:var(--ke)}
+
+/* RIGHT */
+.right-panel{background:var(--surface)}
+.k-tabs{display:flex;border-bottom:1px solid var(--border)}
+.k-tab{flex:1;padding:10px 0;text-align:center;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;transition:all .15s;letter-spacing:.06em}
+.k-tab.active{color:var(--text-primary);border-bottom-color:var(--accent)}
+.k-chart-wrap{padding:12px 12px 8px;border-bottom:1px solid var(--border)}
+.k-svg{width:100%;aspect-ratio:1;max-height:216px;margin:0 auto;display:block}
+.abhijit-row{padding:8px 14px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.abh-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
+.abh-val{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold);font-weight:500}
+.abh-nav{display:flex;gap:4px}
+.abh-nav button{border:none;background:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:0 2px;line-height:1;transition:color .12s}
+.abh-nav button:hover{color:var(--accent)}
+.panch-title{padding:10px 14px 6px;font-size:14px;font-weight:500;font-style:italic;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-light)}
+.panch-exp{font-size:11px;color:var(--text-muted);cursor:pointer;font-style:normal;font-family:'DM Mono',monospace}
+.panch-row{display:flex;align-items:flex-start;padding:5px 14px;border-bottom:1px solid var(--border-light);gap:8px;min-height:27px}
+.panch-row:last-child{border-bottom:none}
+.p-key{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);width:80px;flex-shrink:0;padding-top:1px}
+.p-val{font-size:12.5px;color:var(--text-primary);flex:1;line-height:1.45}
+.pp{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;padding:1px 5px;border-radius:3px;display:inline-block;margin-left:4px}
+.pp-me{background:#e8f0f7;color:var(--me)}.pp-mo{background:#f0ebf5;color:var(--mo)}
+.pp-sa{background:#ebebf0;color:var(--sa)}.pp-ju{background:#f7f0e5;color:var(--ju)}
+.pp-ma{background:#fde8e8;color:var(--ma)}.pp-ve{background:#e5f5ef;color:var(--ve)}
+.pp-su{background:#fdf0e8;color:var(--su)}.pp-ra{background:#f0eaff;color:var(--ra)}
+.pp-ke{background:#f5ede5;color:var(--ke)}
+
+/* MODAL */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(26,23,20,.45);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--surface);border-radius:12px;border:1px solid var(--border);width:420px;box-shadow:0 20px 60px rgba(0,0,0,.15);animation:mIn .18s ease}
+@keyframes mIn{from{opacity:0;transform:translateY(-12px) scale(.97)}to{opacity:1;transform:none}}
+.m-hdr{padding:16px 20px 12px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
+.m-title{font-size:16px;font-weight:500;font-style:italic}
+.m-close{border:none;background:none;font-size:20px;cursor:pointer;color:var(--text-muted);line-height:1}
+.m-body{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fl{font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);letter-spacing:.06em;text-transform:uppercase}
+.fi,.fs{border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:'EB Garamond',serif;font-size:14px;background:var(--bg);color:var(--text-primary);outline:none;transition:border-color .15s;width:100%}
+.fi:focus,.fs:focus{border-color:var(--accent);background:#fff}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.m-ftr{padding:12px 20px;border-top:1px solid var(--border-light);display:flex;gap:8px;justify-content:flex-end;align-items:center}
+.gcal-badge{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);padding:5px 8px;border:1px solid var(--border-light);border-radius:5px;margin-right:auto;cursor:pointer}
+.gcal-dot{width:7px;height:7px;border-radius:50%;background:#4285f4;flex-shrink:0}
+.btn-sec{padding:7px 16px;border-radius:6px;border:1px solid var(--border);background:transparent;font-family:'EB Garamond',serif;font-size:14px;cursor:pointer;color:var(--text-secondary);transition:all .12s}
+.btn-sec:hover{border-color:var(--accent);color:var(--accent)}
+.btn-pri{padding:7px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-family:'EB Garamond',serif;font-size:14px;cursor:pointer;transition:opacity .12s}
+.btn-pri:hover{opacity:.88}
+.btn-pri:disabled{opacity:.5;cursor:not-allowed}
+
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1714;color:#f7f5f0;padding:10px 18px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <div class="logo-icon">☽</div>
+    Vedic Planner
+  </div>
+  <div class="location-bar" onclick="promptLocation()">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    <span id="locText">New Delhi, India</span>
+  </div>
+  <div class="cache-pill stale" id="cachePill">demo data</div>
+  <div class="nav-spacer"></div>
+  <button class="btn-donate">Donate</button>
+  <button class="btn-create" onclick="openModal()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Create
+  </button>
+  <div class="view-tabs">
+    <button class="view-tab active" onclick="setView('month',this)">Month</button>
+    <button class="view-tab" onclick="setView('week',this)">Week</button>
+    <button class="view-tab" onclick="setView('day',this)">Day</button>
+  </div>
+  <div class="nav-icon">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+  </div>
+  <div class="avatar">G</div>
+</nav>
+
+<div class="main">
+
+  <!-- LEFT: CALENDAR -->
+  <div class="panel">
+    <div class="cal-header">
+      <button class="cal-nav-btn" onclick="changeMonth(-1)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="cal-month-title" id="calTitle">April 2026</div>
+      <button class="cal-nav-btn" onclick="changeMonth(1)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <div class="cal-legend">
+        <div class="leg"><span class="leg-dot" style="background:var(--shukla)"></span>Śukla</div>
+        <div class="leg"><span class="leg-dot" style="background:var(--purnima)"></span>Pūrṇimā</div>
+        <div class="leg"><span class="leg-dot" style="background:var(--krishna)"></span>Kṛṣṇa</div>
+        <div class="leg"><span class="leg-dot" style="background:var(--amavasya)"></span>Amāvasyā</div>
+        <div class="leg"><span style="font-size:11px">☀</span>Saṅkrānti</div>
+      </div>
+    </div>
+    <div class="cal-grid" id="calGrid">
+      <div class="cal-day-hdr">Sun</div><div class="cal-day-hdr">Mon</div>
+      <div class="cal-day-hdr">Tue</div><div class="cal-day-hdr">Wed</div>
+      <div class="cal-day-hdr">Thu</div><div class="cal-day-hdr">Fri</div>
+      <div class="cal-day-hdr">Sat</div>
+    </div>
+  </div>
+
+  <!-- CENTER: HORA TIMELINE -->
+  <div class="panel timeline-panel">
+    <div class="tl-header">
+      <div class="tl-date-row">
+        <button class="tl-nav" onclick="shiftDay(-1)">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="tl-date" id="tlDate">April 22, 2026</div>
+        <button class="tl-nav" onclick="shiftDay(1)">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <div class="tl-cols"><span>Timeline</span><span>Ghatika</span></div>
+    </div>
+    <div id="tlBody"></div>
+  </div>
+
+  <!-- RIGHT: KUNDALI + PANCHANGA -->
+  <div class="panel right-panel">
+    <div class="k-tabs">
+      <div class="k-tab active" onclick="setChart('D1',this)">D1</div>
+      <div class="k-tab" onclick="setChart('D9',this)">D9</div>
+    </div>
+    <div class="k-chart-wrap">
+      <svg class="k-svg" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+        <style>.kl{stroke:#c8c2b8;stroke-width:1}.kb{fill:none;stroke:#c8c2b8;stroke-width:1.2}.kp{font-family:'DM Mono',monospace;font-size:8px}.kn{font-family:'DM Mono',monospace;font-size:9px;fill:#a09a92}</style>
+        <rect x="10" y="10" width="260" height="260" class="kb"/>
+        <line x1="10" y1="10" x2="140" y2="140" class="kl"/>
+        <line x1="270" y1="10" x2="140" y2="140" class="kl"/>
+        <line x1="10" y1="270" x2="140" y2="140" class="kl"/>
+        <line x1="270" y1="270" x2="140" y2="140" class="kl"/>
+        <line x1="140" y1="10" x2="10" y2="140" class="kl"/>
+        <line x1="140" y1="10" x2="270" y2="140" class="kl"/>
+        <line x1="10" y1="140" x2="140" y2="270" class="kl"/>
+        <line x1="270" y1="140" x2="140" y2="270" class="kl"/>
+        <text x="140" y="40" text-anchor="middle" class="kn">1</text>
+        <text x="218" y="76" text-anchor="middle" class="kn">2</text>
+        <text x="244" y="112" text-anchor="middle" class="kn">3</text>
+        <text x="247" y="145" text-anchor="middle" class="kn">4</text>
+        <text x="232" y="192" text-anchor="middle" class="kn">5</text>
+        <text x="210" y="232" text-anchor="middle" class="kn">6</text>
+        <text x="140" y="257" text-anchor="middle" class="kn">7</text>
+        <text x="68" y="232" text-anchor="middle" class="kn">8</text>
+        <text x="46" y="192" text-anchor="middle" class="kn">9</text>
+        <text x="38" y="145" text-anchor="middle" class="kn">10</text>
+        <text x="52" y="105" text-anchor="middle" class="kn">11</text>
+        <text x="74" y="76" text-anchor="middle" class="kn">12</text>
+        <text x="128" y="54" text-anchor="middle" class="kp" fill="#c4622d" font-weight="600">As</text>
+        <text x="153" y="54" text-anchor="middle" class="kp" fill="#c4862d">Jp</text>
+        <text x="224" y="64" text-anchor="middle" class="kp" fill="#7a6a8a">Mo</text>
+        <text x="256" y="100" text-anchor="middle" class="kp" fill="#c4622d">Su</text>
+        <text x="256" y="158" text-anchor="middle" class="kp" fill="#2d8a6a">Ve</text>
+        <text x="248" y="174" text-anchor="middle" class="kp" fill="#2e6b96">Me</text>
+        <text x="248" y="190" text-anchor="middle" class="kp" fill="#4a2a6a">Ra</text>
+        <text x="37" y="205" text-anchor="middle" class="kp" fill="#6a4a2a">Ke</text>
+        <text x="62" y="64" text-anchor="middle" class="kp" fill="#5a5a7a">Sa</text>
+        <text x="77" y="57" text-anchor="middle" class="kp" fill="#c0392b">Ma</text>
+      </svg>
+    </div>
+    <div class="abhijit-row">
+      <div>
+        <div class="abh-label">Abhijit Muhūrta</div>
+        <div class="abh-val" id="abhijitVal">11:52:00 – 12:42:00</div>
+      </div>
+      <div class="abh-nav">
+        <button onclick="shiftDay(-1)">←</button>
+        <button onclick="shiftDay(1)">→</button>
+      </div>
+    </div>
+    <div class="panch-title">Pañcāṅga <span class="panch-exp">→</span></div>
+    <div id="panchRows"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="modalBg" onclick="bgClose(event)">
+  <div class="modal">
+    <div class="m-hdr">
+      <div class="m-title">Add Event</div>
+      <button class="m-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="m-body">
+      <div class="fg">
+        <label class="fl">Event Title</label>
+        <input class="fi" type="text" placeholder="Puja, Meeting, Travel…" id="eTitle"/>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Date</label><input class="fi" type="date" id="eDate"/></div>
+        <div class="fg"><label class="fl">Time</label><input class="fi" type="time" id="eTime"/></div>
+      </div>
+      <div class="fg">
+        <label class="fl">Duration</label>
+        <select class="fs" id="eDuration">
+          <option>30 minutes</option><option>1 hour</option>
+          <option>2 hours</option><option>All day</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Hora / Muhurta preference</label>
+        <select class="fs" id="eHora">
+          <option value="">Any hora</option>
+          <option value="su">Sun hora – authority, leadership</option>
+          <option value="mo">Moon hora – emotion, travel</option>
+          <option value="ma">Mars hora – energy, surgery</option>
+          <option value="me">Mercury hora – business, communication</option>
+          <option value="ju">Jupiter hora – auspicious, learning</option>
+          <option value="ve">Venus hora – art, romance</option>
+          <option value="sa">Saturn hora – labour, discipline</option>
+          <option value="abhijit">Abhijit Muhūrta</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Notes</label>
+        <input class="fi" type="text" placeholder="Optional…" id="eNotes"/>
+      </div>
+    </div>
+    <div class="m-ftr">
+      <label class="gcal-badge">
+        <div class="gcal-dot"></div>
+        <input type="checkbox" id="eGcal" checked style="accent-color:var(--accent)"/>
+        Sync to Google Calendar
+      </label>
+      <button class="btn-sec" onclick="closeModal()">Cancel</button>
+      <button class="btn-pri" id="saveBtn" onclick="saveEvent()">Save Event</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   CONFIG  —  replace with your actual values
+════════════════════════════════════════════════════ */
+const CFG = {
+  // n8n webhook: only called when user creates an event
+  N8N_WEBHOOK: 'https://your-n8n.com/webhook/vedic-planner',
+
+  // Supabase (anon key — read only; all writes happen via n8n server-side)
+  // Table: vedic_calendar  Columns: date TEXT (YYYY-MM-DD), payload JSONB
+  SUPABASE_URL:  'https://YOUR_PROJECT.supabase.co',
+  SUPABASE_ANON: 'YOUR_SUPABASE_ANON_KEY',
+
+  // Cache TTL — how old (hours) before we re-fetch from Supabase
+  CACHE_TTL_H: 23,
+};
+
+/* ════════════════════════════════════════════════════
+   DATA SERVICE
+   Read order: localStorage → Supabase → mock
+   n8n midnight job pre-populates Supabase each night.
+   Navigation NEVER triggers n8n. Only event creation does.
+════════════════════════════════════════════════════ */
+const DS = (() => {
+  const PRE = 'vp2_';
+  const EVTS_KEY = 'vp2_events';
+
+  const cacheKey = ym => PRE + ym;
+
+  function cacheAge(ym) {
+    try {
+      const r = localStorage.getItem(cacheKey(ym));
+      if (!r) return Infinity;
+      return (Date.now() - (JSON.parse(r).ts || 0)) / 3_600_000;
+    } catch { return Infinity; }
+  }
+
+  function fromCache(ym) {
+    try {
+      const r = localStorage.getItem(cacheKey(ym));
+      if (!r) return null;
+      const e = JSON.parse(r);
+      return cacheAge(ym) < CFG.CACHE_TTL_H ? e.data : null;
+    } catch { return null; }
+  }
+
+  function toCache(ym, data) {
+    try { localStorage.setItem(cacheKey(ym), JSON.stringify({ts:Date.now(), data})); }
+    catch(e) { console.warn('Cache write failed', e); }
+  }
+
+  async function fromSupabase(ym) {
+    const [y, m] = ym.split('-');
+    const start = `${y}-${m}-01`, end = `${y}-${m}-31`;
+    const url = `${CFG.SUPABASE_URL}/rest/v1/vedic_calendar?date=gte.${start}&date=lte.${end}&select=date,payload&order=date`;
+    const r = await fetch(url, {headers:{'apikey':CFG.SUPABASE_ANON,'Authorization':'Bearer '+CFG.SUPABASE_ANON}});
+    if (!r.ok) throw new Error('Supabase '+r.status);
+    const rows = await r.json();
+    if (!rows.length) throw new Error('No rows');
+    const map = {};
+    rows.forEach(row => { map[row.date] = row.payload; });
+    return map;
+  }
+
+  // ── Mock data (used in demo / when Supabase is not configured) ──
+  // Shape matches what n8n would write to Supabase nightly
+  function buildMock(year, month) {
+    const NK = ['Ashwini','Bharani','Krittikā','Rohiṇī','Mrigashīrsha','Ārdrā','Punarvasu','Pushya',
+      'Āshlesha','Maghā','Pūrva Phālguni','Uttara Phālguni','Hasta','Chitrā','Svāti','Vishākhā',
+      'Anurādhā','Jyeshthā','Mūla','Pūrva Āshādhā','Uttara Āshādhā','Shravaṇa','Dhanishtā',
+      'Shatabhishā','Pūrva Bhādrapadā','Uttara Bhādrapadā','Revatī'];
+    const TITHIS = ['Pratipada','Dvitīyā','Tritīyā','Chaturthī','Panchamī','Shashthī',
+      'Saptamī','Ashtamī','Navamī','Dashamī','Ekādashī','Dvādashī','Trayodashī',
+      'Chaturdashī','Pūrṇimā','Pratipada','Dvitīyā','Tritīyā','Chaturthī','Panchamī',
+      'Shashthī','Saptamī','Ashtamī','Navamī','Dashamī','Ekādashī','Dvādashī',
+      'Trayodashī','Chaturdashī','Amāvasyā'];
+    const VARAS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const VARA_P = ['Su','Mo','Ma','Me','Ju','Ve','Sa'];
+    const HORA_ORD = ['Su','Mo','Ma','Me','Ju','Ve','Sa'];
+
+    const days = new Date(year, month, 0).getDate();
+    const map = {};
+
+    for (let d = 1; d <= days; d++) {
+      const dt = new Date(year, month-1, d);
+      const dow = dt.getDay();
+      const ti = (d + month + 3) % 30;
+      const isAmavasya = ti === 29, isPurnima = ti === 14;
+      const paksha = ti <= 14 ? 'shukla' : 'krishna';
+      const moonPhase = isAmavasya ? 'amavasya' : isPurnima ? 'purnima' : paksha;
+
+      // Sankranti: approx 14th of Jan, Apr, Jul, Oct
+      const isSankranti = ([1,4,7,10].includes(month) && d === 14);
+
+      const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const nk = NK[(d + month * 3 + 7) % 27];
+      const tithi = TITHIS[ti];
+      const vara = VARAS[dow];
+      const varaPl = VARA_P[dow];
+
+      // Build hora blocks — 6 blocks from sunrise
+      const hora = [];
+      for (let i = 0; i < 7; i++) {
+        const pl = HORA_ORD[(dow + i) % 7];
+        const bh = 6 + i;
+        const slots = [];
+        for (let s = 0; s < 3; s++) {
+          const totalM = bh * 60 + s * 20;
+          const hh = String(Math.floor(totalM/60)).padStart(2,'0');
+          const mm = String(totalM%60).padStart(2,'0');
+          slots.push({time:`${hh}:${mm}`, ghati:`G${i*3+s+7}`});
+        }
+        const fmtH = (h24, min) => {
+          const ap = h24 >= 12 ? 'PM' : 'AM';
+          return `${String(h24%12||12).padStart(2,'0')}:${String(min).padStart(2,'0')} ${ap}`;
+        };
+        const special = i === 3 ? 'rahu' : i === 2 ? 'abhijit' : null;
+        hora.push({planet:pl, startLabel:fmtH(bh,0), endLabel:fmtH(bh+1,0), slots, special});
+      }
+
+      map[dateStr] = {
+        moonPhase, isSankranti, nakshatra:nk,
+        sunrise:'06:23:27', sunset:'19:50:06',
+        abhijit:'11:52:00 – 12:42:00',
+        hora,
+        panchanga:[
+          {key:'Birth Time', val:`${dateStr}T08:38:00`, planet:null},
+          {key:'Sunrise',    val:'06:23:27 / 19:50:06', planet:null},
+          {key:'Vāra',       val:vara, planet:varaPl},
+          {key:'Tithi',      val:`${paksha==='shukla'?'Śukla':'Kṛṣṇa'} ${tithi}`, planet:'Me'},
+          {key:'Nakṣatra',   val:`${nk}`, planet:null},
+          {key:'Karaṇa',     val:'Taitula — Me 15.5% left', planet:'Me'},
+          {key:'Yoga',       val:'Sukarma — Ma 42.4% left', planet:'Ma'},
+          {key:'Hora',       val:`${HORA_ORD[(dow+Math.floor((new Date().getHours()-6)/1))%7]} 74% left`, planet:HORA_ORD[(dow+4)%7]},
+          {key:'Kāla',       val:'Ve 65.77% left', planet:'Ve'},
+          {key:'Ayanāmsa',   val:"24°12'50\"", planet:null},
+          {key:'Coordinates',val:'28.61, 77.23', planet:null},
+          {key:'Timezone',   val:'IST [+05:30]', planet:null},
+        ],
+      };
+    }
+    return map;
+  }
+
+  async function getMonth(year, month) {
+    const ym = `${year}-${String(month).padStart(2,'0')}`;
+    const cached = fromCache(ym);
+    if (cached) {
+      setCachePill('fresh', Math.floor(cacheAge(ym)));
+      return cached;
+    }
+    try {
+      const data = await fromSupabase(ym);
+      toCache(ym, data);
+      setCachePill('fresh', 0);
+      return data;
+    } catch(e) {
+      console.warn('Supabase unavailable, using mock:', e.message);
+    }
+    const mock = buildMock(year, month);
+    toCache(ym, mock);
+    setCachePill('stale', null);
+    return mock;
+  }
+
+  function getEvents() {
+    try { return JSON.parse(localStorage.getItem(EVTS_KEY)||'{}'); } catch { return {}; }
+  }
+
+  function addEvent(dateStr, ev) {
+    const all = getEvents();
+    if (!all[dateStr]) all[dateStr] = [];
+    all[dateStr].push(ev);
+    localStorage.setItem(EVTS_KEY, JSON.stringify(all));
+  }
+
+  // n8n call — ONLY on event creation, never on navigation
+  async function n8nCreate(payload) {
+    try {
+      const r = await fetch(CFG.N8N_WEBHOOK, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload),
+      });
+      if (!r.ok) throw new Error('HTTP '+r.status);
+    } catch(e) {
+      console.warn('n8n unreachable – event saved locally only:', e.message);
+    }
+  }
+
+  return {getMonth, getEvents, addEvent, n8nCreate};
+})();
+
+function setCachePill(status, ageH) {
+  const el = document.getElementById('cachePill');
+  el.className = 'cache-pill ' + status;
+  el.textContent = status === 'fresh'
+    ? (ageH === 0 ? 'live' : `cached ${ageH}h ago`)
+    : 'demo data';
+  el.title = status === 'fresh'
+    ? 'Vedic data served from Supabase / local cache'
+    : 'Mock data — connect Supabase & n8n for live calculations';
+}
+
+/* ════════════════════════════════════════════════════
+   APP STATE
+════════════════════════════════════════════════════ */
+const S = {year:2026, month:4, day:22, data:{}};
+
+const PFull = {Su:'Sun',Mo:'Moon',Ma:'Mars',Me:'Mercury',Ju:'Jupiter',Ve:'Venus',Sa:'Saturn'};
+const PCls  = {Su:'pc-su',Mo:'pc-mo',Ma:'pc-ma',Me:'pc-me',Ju:'pc-ju',Ve:'pc-ve',Sa:'pc-sa'};
+
+/* ════════════════════════════════════════════════════
+   CALENDAR
+════════════════════════════════════════════════════ */
+async function renderCal() {
+  S.data = await DS.getMonth(S.year, S.month);
+  const y = S.year, m = S.month;
+  document.getElementById('calTitle').textContent =
+    new Date(y,m-1,1).toLocaleString('default',{month:'long'}) + ' ' + y;
+
+  const firstDay = new Date(y,m-1,1).getDay();
+  const dim = new Date(y,m,0).getDate();
+  const prevDim = new Date(y,m-2,0).getDate();
+  const today = new Date();
+  const events = DS.getEvents();
+
+  const grid = document.getElementById('calGrid');
+  const hdrs = [...grid.querySelectorAll('.cal-day-hdr')];
+  grid.innerHTML = '';
+  hdrs.forEach(h => grid.appendChild(h));
+
+  for (let i = 0; i < 42; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell';
+    let dn, cur = true;
+    if (i < firstDay)         { dn = prevDim - firstDay + i + 1; cur = false; }
+    else if (i-firstDay < dim){ dn = i - firstDay + 1; }
+    else                      { dn = i - firstDay - dim + 1; cur = false; }
+
+    if (!cur) { cell.classList.add('other-month'); }
+    else {
+      const ds = `${y}-${String(m).padStart(2,'0')}-${String(dn).padStart(2,'0')}`;
+      const dd = S.data[ds];
+      cell.classList.add(dd?.moonPhase || 'shukla');
+      if (today.getDate()===dn && today.getMonth()===m-1 && today.getFullYear()===y) cell.classList.add('today');
+      if (dn === S.day) cell.classList.add('selected');
+
+      if (dd?.isSankranti) {
+        const sun = document.createElement('div');
+        sun.className = 'sankranti-sun'; sun.textContent = '☀';
+        cell.appendChild(sun);
+      }
+
+      const di = document.createElement('div'); di.className = 'cal-date';
+      const inn = document.createElement('div'); inn.className = 'cal-date-inner';
+      inn.textContent = dn; di.appendChild(inn); cell.appendChild(di);
+
+      if (dd?.nakshatra) {
+        const nk = document.createElement('div'); nk.className = 'nk-tag';
+        nk.textContent = dd.nakshatra; cell.appendChild(nk);
+      }
+
+      const dayEvts = (events[ds] || []);
+      dayEvts.slice(0,2).forEach(ev => {
+        const p = document.createElement('div'); p.className = 'ev-pill';
+        p.textContent = ev.title; cell.appendChild(p);
+      });
+      if (dayEvts.length > 2) {
+        const p = document.createElement('div'); p.className = 'ev-pill';
+        p.style.opacity = '.6'; p.textContent = `+${dayEvts.length-2} more`;
+        cell.appendChild(p);
+      }
+
+      cell.onclick = () => selectDay(dn);
+    }
+
+    if (!cur) {
+      const di = document.createElement('div'); di.className = 'cal-date';
+      const inn = document.createElement('div'); inn.className = 'cal-date-inner';
+      inn.textContent = dn; di.appendChild(inn); cell.appendChild(di);
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+function selectDay(d) {
+  S.day = d;
+  const dt = new Date(S.year, S.month-1, d);
+  document.getElementById('tlDate').textContent =
+    dt.toLocaleString('default',{month:'long',day:'numeric',year:'numeric'});
+  renderCal();
+  renderTimeline();
+  renderPanch();
+}
+
+async function changeMonth(dir) {
+  S.month += dir;
+  if (S.month > 12) { S.month = 1; S.year++; }
+  if (S.month < 1)  { S.month = 12; S.year--; }
+  await renderCal();
+  renderTimeline();
+  renderPanch();
+}
+
+function shiftDay(dir) {
+  let d = S.day + dir;
+  const max = new Date(S.year, S.month, 0).getDate();
+  if (d < 1) { changeMonth(-1); return; }
+  if (d > max) { changeMonth(1); return; }
+  selectDay(d);
+}
+
+/* ════════════════════════════════════════════════════
+   TIMELINE — reads from S.data (cached), never hits n8n
+════════════════════════════════════════════════════ */
+function renderTimeline() {
+  const body = document.getElementById('tlBody');
+  body.innerHTML = '';
+  const ds = `${S.year}-${String(S.month).padStart(2,'0')}-${String(S.day).padStart(2,'0')}`;
+  const dd = S.data[ds];
+  const evts = DS.getEvents()[ds] || [];
+
+  if (!dd) {
+    body.innerHTML = '<div style="padding:32px 18px;font-family:\'DM Mono\',monospace;font-size:11px;color:var(--text-muted);text-align:center">No Vedic data for this date.<br>Connect Supabase to load pre-computed data.</div>';
+    return;
+  }
+
+  // Sunrise
+  addBanner(body, 'sun-ev', `Sunrise — ${dd.sunrise||'06:23:27'}`, '');
+
+  const nowM = new Date().getHours()*60 + new Date().getMinutes();
+  const isTodaySel = new Date(S.year,S.month-1,S.day).toDateString() === new Date().toDateString();
+
+  (dd.hora||[]).forEach(block => {
+    const bEl = document.createElement('div'); bEl.className = 'hora-block';
+
+    // Planet header
+    const ph = document.createElement('div'); ph.className = 'hora-phdr';
+    const pn = document.createElement('div');
+    pn.className = `hora-pname ${PCls[block.planet]||''}`;
+    pn.textContent = (PFull[block.planet]||block.planet) + ' Hora';
+    const pr = document.createElement('div'); pr.className = 'hora-prange';
+    pr.textContent = `${block.startLabel} – ${block.endLabel}`;
+    ph.appendChild(pn); ph.appendChild(pr); bEl.appendChild(ph);
+
+    if (block.special === 'rahu')
+      addBannerEl(bEl, 'rahu', 'Rāhu Kāla', `${block.startLabel} – ${block.endLabel}`);
+    if (block.special === 'abhijit')
+      addBannerEl(bEl, 'muhurta', 'Abhijit Muhūrta', dd.abhijit||'');
+
+    block.slots.forEach(slot => {
+      const [hh,mm] = slot.time.split(':').map(Number);
+      const slotM = hh*60 + mm;
+      const isNow = isTodaySel && Math.abs(slotM - nowM) < 20;
+      const matchEvt = evts.find(ev => { if(!ev.time)return false; const[eh,em]=ev.time.split(':').map(Number); return Math.abs(eh*60+em-slotM)<20; });
+
+      const s = document.createElement('div');
+      s.className = 'hora-slot' + (isNow?' now-line':'') + (matchEvt?' has-event':'');
+      const t = document.createElement('div'); t.className = 'hs-time'; t.textContent = slot.time;
+      const ev = document.createElement('div'); ev.className = 'hs-label';
+      if (matchEvt) { ev.textContent = matchEvt.title; }
+      else if (isNow) { ev.textContent = '← now'; }
+      else { ev.textContent = '+ add event'; ev.onclick = () => openModal(slot.time); }
+      const g = document.createElement('div'); g.className = 'hs-ghati'; g.textContent = slot.ghati;
+      s.appendChild(t); s.appendChild(ev); s.appendChild(g); bEl.appendChild(s);
+    });
+
+    body.appendChild(bEl);
+  });
+
+  addBanner(body, 'sun-ev', `Sunset — ${dd.sunset||'19:50:06'}`, '');
+}
+
+function addBanner(parent, cls, left, right) {
+  const b = document.createElement('div'); b.className = `banner ${cls}`;
+  b.innerHTML = `<span>${left}</span><span>${right}</span>`;
+  parent.appendChild(b);
+}
+function addBannerEl(parent, cls, left, right) {
+  const b = document.createElement('div'); b.className = `banner ${cls}`;
+  b.innerHTML = `<span>${left}</span><span>${right}</span>`;
+  parent.appendChild(b);
+}
+
+/* ════════════════════════════════════════════════════
+   PANCHANGA — reads from cache
+════════════════════════════════════════════════════ */
+function renderPanch() {
+  const c = document.getElementById('panchRows'); c.innerHTML = '';
+  const ds = `${S.year}-${String(S.month).padStart(2,'0')}-${String(S.day).padStart(2,'0')}`;
+  const dd = S.data[ds];
+  if (dd?.abhijit) document.getElementById('abhijitVal').textContent = dd.abhijit;
+  (dd?.panchanga||[]).forEach(row => {
+    const d = document.createElement('div'); d.className = 'panch-row';
+    const k = document.createElement('div'); k.className = 'p-key'; k.textContent = row.key;
+    const v = document.createElement('div'); v.className = 'p-val'; v.textContent = row.val;
+    if (row.planet) {
+      const b = document.createElement('span');
+      b.className = `pp pp-${row.planet.toLowerCase()}`; b.textContent = row.planet;
+      v.appendChild(b);
+    }
+    d.appendChild(k); d.appendChild(v); c.appendChild(d);
+  });
+}
+
+/* ════════════════════════════════════════════════════
+   KUNDALI
+════════════════════════════════════════════════════ */
+function setChart(type, el) {
+  document.querySelectorAll('.k-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  showToast(type === 'D9' ? 'D9 Navāmsha — connect Supabase for live chart' : 'D1 Rāshi chart');
+}
+
+/* ════════════════════════════════════════════════════
+   VIEW
+════════════════════════════════════════════════════ */
+function setView(v, el) {
+  document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ════════════════════════════════════════════════════
+   MODAL
+════════════════════════════════════════════════════ */
+function openModal(time) {
+  document.getElementById('modalBg').classList.add('open');
+  document.getElementById('eDate').value =
+    `${S.year}-${String(S.month).padStart(2,'0')}-${String(S.day).padStart(2,'0')}`;
+  if (time) document.getElementById('eTime').value = time.substring(0,5);
+  setTimeout(() => document.getElementById('eTitle').focus(), 50);
+}
+
+function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
+function bgClose(e) { if (e.target.id==='modalBg') closeModal(); }
+
+async function saveEvent() {
+  const title = document.getElementById('eTitle').value.trim();
+  if (!title) { document.getElementById('eTitle').focus(); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const date  = document.getElementById('eDate').value;
+  const time  = document.getElementById('eTime').value;
+  const gcal  = document.getElementById('eGcal').checked;
+  const hora  = document.getElementById('eHora').value;
+  const dur   = document.getElementById('eDuration').value;
+  const notes = document.getElementById('eNotes').value;
+
+  // 1. Instant local save (no network)
+  DS.addEvent(date, {title, time, hora, dur, notes});
+
+  // 2. n8n webhook — ONLY here, never on calendar navigation
+  if (gcal) {
+    await DS.n8nCreate({
+      action:'create_event', title, date, time, hora,
+      duration:dur, notes, sync_gcal:true,
+      location:document.getElementById('locText').textContent,
+    });
+  }
+
+  btn.disabled = false; btn.textContent = 'Save Event';
+  closeModal();
+  ['eTitle','eNotes'].forEach(id => document.getElementById(id).value = '');
+
+  await renderCal();  // re-render to show event pill (reads localStorage, no network)
+  renderTimeline();
+  showToast(`"${title}" saved${gcal ? ' · syncing to Google Calendar via n8n' : ''}`);
+}
+
+/* ════════════════════════════════════════════════════
+   LOCATION
+════════════════════════════════════════════════════ */
+function promptLocation() {
+  const cur = document.getElementById('locText').textContent;
+  const v = prompt('City name or lat, lng:', cur);
+  if (v?.trim()) {
+    document.getElementById('locText').textContent = v.trim();
+    localStorage.setItem('vp2_location', v.trim());
+    showToast('Location updated');
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════════════ */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(t._t); t._t = setTimeout(() => t.style.opacity = '0', 2800);
+}
+
+/* ════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════ */
+(async () => {
+  const loc = localStorage.getItem('vp2_location');
+  if (loc) document.getElementById('locText').textContent = loc;
+
+  const dt = new Date(S.year, S.month-1, S.day);
+  document.getElementById('tlDate').textContent =
+    dt.toLocaleString('default',{month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('eDate').value =
+    `${S.year}-${String(S.month).padStart(2,'0')}-${String(S.day).padStart(2,'0')}`;
+
+  await renderCal();
+  renderTimeline();
+  renderPanch();
+})();
+</script>
+</body>
+</html>
